@@ -1,0 +1,87 @@
+﻿@page "/Auctions"
+@using BlazorDarkBid.Models
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+
+<h1 class="text-center mb-3">Mystery Auctions</h1>
+
+<a class="btn btn-primary mb-3" href="/Auctions/Create">New Auction</a>
+
+@if (auctions == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="product-grid">
+        @foreach (var auction in auctions)
+        {
+            <a href="@($"/Auctions/Details/{auction.ProductId}")" target="_blank" class="mystery-link">
+                <div class="mystery-card">
+                    <div class="mystery-image">
+                        @if (!string.IsNullOrWhiteSpace(auction.ImageUrl))
+                        {
+                            <img src="@($"https://localhost:7091/{auction.ImageUrl}")"
+                                 alt="Mystery Item"
+                                 class="blurred-image" />
+                        }
+                        else
+                        {
+                            <div class="no-image">No Image</div>
+                        }
+                    </div>
+
+                    <div class="mystery-text">
+                        <h5>🎁 Mystery Item</h5>
+                        <p>Click to reveal details</p>
+                    </div>
+                </div>
+            </a>
+        }
+    </div>
+}
+
+@code {
+    private List<Auction>? auctions;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            auctions = await Http.GetFromJsonAsync<List<Auction>>("https://localhost:7091/api/Auction/get-all-auctions");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load auctions: {ex.Message}";
+        }
+
+        userId = await JS.InvokeAsync<string>("localStorageFunctions.get", "userId");
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            NavigationManager.NavigateTo("/auth");
+        }
+    }
+
+
+    private string? userId;
+
+    private async Task OnProductClick(int productId)
+    {
+        userId = await JS.InvokeAsync<string>("localStorageFunctions.get", "userId");
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            NavigationManager.NavigateTo("/auth");
+            return;
+        }
+
+        NavigationManager.NavigateTo($"/product/{productId}");
+    }
+}
+
+
+
+
